@@ -6,6 +6,7 @@ Uses the Playwright Chromium we already depend on (mermaid is loaded from a pinn
 """
 from __future__ import annotations
 
+import base64
 import sys
 from pathlib import Path
 
@@ -23,7 +24,7 @@ h1 { font-size: 16pt; margin: 0 0 4pt; } h2 { font-size: 11.5pt; margin: 10pt 0 
 p { margin: 3pt 0; } ul { margin: 3pt 0 3pt 14pt; padding: 0; } li { margin: 1.5pt 0; }
 code { font: 8.4pt Consolas, monospace; background: #f1f1f1; padding: 0 2pt; border-radius: 2px; }
 table { border-collapse: collapse; width: 100%; margin: 4pt 0; font-size: 8.8pt; } td, th { border: 1px solid #ccc; padding: 2pt 5pt; text-align: left; }
-th { background: #f4f4f4; } img { max-height: 92mm; max-width: 100%; display: block; margin: 4pt auto; }
+th { background: #f4f4f4; } img { max-height: 130mm; max-width: 100%; display: block; margin: 4pt auto; }
 """
 
 
@@ -46,7 +47,10 @@ def main() -> int:
         png = render_diagram(pg)
         print("diagram ->", png.relative_to(ROOT))
         body = markdown.markdown((DOCS / "architecture.md").read_text(encoding="utf-8"), extensions=["tables"])
-        body = body.replace('src="architecture.png"', f'src="{png.as_uri()}"')
+        # about:blank pages cannot load file:// images -> embed the PNG as a data URI
+        data_uri = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode()
+        assert 'src="architecture.png"' in body, "diagram reference missing from architecture.md"
+        body = body.replace('src="architecture.png"', f'src="{data_uri}"')
         pg.set_content(f"<html><head><meta charset='utf-8'><style>{CSS}</style></head><body>{body}</body></html>")
         pdf = ROOT / "architecture.pdf"
         pg.pdf(path=str(pdf), format="A4", print_background=True, margin={"top": "14mm", "bottom": "14mm", "left": "14mm", "right": "14mm"})
