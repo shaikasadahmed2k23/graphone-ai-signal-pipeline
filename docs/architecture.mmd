@@ -1,0 +1,21 @@
+flowchart TD
+  subgraph SRC["Sources"]
+    direction LR
+    S1["YC Algolia<br/>batch facets"]
+    S2["arXiv windows<br/>HF + GitHub"]
+    S3["Product Hunt<br/>+ TAAFT"]
+    S4["Job boards<br/>ATS + RSS"]
+    S5["News RSS<br/>+ HN"]
+  end
+  PART["Partitioner<br/>(batch / date-window / task / board)<br/>checkpointed"]
+  Q[("Queue<br/>Redis / SQS")]
+  subgraph W["Stateless workers (N)"]
+    direction LR
+    F["Tiered fetch<br/>httpx - curl_cffi - Playwright<br/>per-host rate limit, backoff+jitter"]
+    N["Normalize UTC dates<br/>dedup: URL hash + simhash<br/>entity resolver"]
+    L["LLM gateway: gap-fill only<br/>15 items/call, cache by hash<br/>Gemini - Groq - Groq-small - OpenRouter<br/>circuit breakers"]
+  end
+  DB[("Postgres<br/>JSONB records, unique keys<br/>pgvector, edge tables")]
+  OUT["Export: Google Sheet (6 tabs)<br/>+ JSON, run metrics"]
+  S1 & S2 & S3 & S4 & S5 --> PART --> Q --> F --> N --> L --> DB --> OUT
+  N -. "SETNX claim / ON CONFLICT" .-> DB
