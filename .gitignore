@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+data/*.db
+service_account.json
+.pytest_cache/
+
+# credentials
+*.json.key
+geometric-shine-*.json
+*service-account*.json
+credentials*.json
+.env.*
+!.env.example
+data/export/
+data/*.log
